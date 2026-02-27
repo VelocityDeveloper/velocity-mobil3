@@ -29,6 +29,9 @@
 	padding-top: .5rem;
 	padding-bottom: .5rem;
 }
+.velocity-thumb-image {
+    object-fit: cover;
+}
 #main-menu .dropdown-menu,
 .bg-header {
     background: transparent !important;
@@ -86,12 +89,20 @@
 }
 .widget ul > li:before,
 .entry-content ul > li:before {
-    content: '\f0da';
-    font-family: 'FontAwesome';
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    background-color: var(--bs-primary);
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='currentColor' d='m6 12.796 4.5-4.5L6 3.796z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='currentColor' d='m6 12.796 4.5-4.5L6 3.796z'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
     color: var(--bs-primary);
     position: absolute;
     left: 0px;
-    top: 0;
+    top: 0.2rem;
     display: inline-block;
 }
 .widget ul li {
@@ -173,8 +184,10 @@
 	object-fit: cover;
 }
 .navbar-toggler {
-	font-size: 15px;
-	padding: 5px 10px;
+    font-size: 13px;
+    padding: 3px 5px;
+    width: auto;
+    border-radius: 3px !important;
 }
 .kategori-produk span::after {
     content: ', ';
@@ -207,6 +220,20 @@ a:hover {
 	color: var(--bs-dark);
 }
 
+@media (max-width: 767.98px) {
+    #navbarNavOffcanvas .navbar-nav .menu-item-has-children > .dropdown-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    #navbarNavOffcanvas .navbar-nav .menu-item-has-children > .dropdown-toggle::after {
+        margin: 0;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+}
+
 
 
 @media (min-width: 768px) {
@@ -231,7 +258,7 @@ a:hover {
         color: #ffffff;
         border-radius: 3px;
     }
-    .pr-md-0 {
+    .pe-md-0 {
         padding-right: 0 !important;
     }
     .dropdown-item.active, .dropdown-item:active {

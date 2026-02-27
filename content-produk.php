@@ -54,9 +54,7 @@ $transmisi = get_post_meta( $post->ID, 'transmisi', true );
                 </div>
                 <div class="row m-0 py-3">
                     <div class="col-12 mb-2 text-center">
-                        <?php if(has_post_thumbnail()) { ?>
-                            <img src="<?php the_post_thumbnail_url( 'full' ); ?> " />
-                        <?php } ?>
+                        <?php echo velocity_mobil3_render_post_thumb(get_the_ID()); ?>
                     </div>
                     <div class="col-12">
                         <table class="table">
@@ -79,10 +77,6 @@ $transmisi = get_post_meta( $post->ID, 'transmisi', true );
                                         <td><?php echo $mesin; ?></td>
                                     </tr>
                                 <?php } ?>
-                                <tr>
-                                    <th>Dilihat</th>
-                                    <td><?php echo get_post_meta(get_the_ID(),'hit',true);?> kali</td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>

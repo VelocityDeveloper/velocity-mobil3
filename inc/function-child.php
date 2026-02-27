@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
 }
 
 add_action('after_setup_theme', 'velocitychild_theme_setup', 9);
+add_action('customize_register', 'velocitychild_customize_register', 30);
 
 function velocitychild_theme_setup()
 {
@@ -15,99 +16,119 @@ function velocitychild_theme_setup()
 	// Load justg_child_enqueue_parent_style after theme setup
 	add_action('wp_enqueue_scripts', 'justg_child_enqueue_parent_style', 20);
 
-	if (class_exists('Kirki')) :
-
-		Kirki::add_panel('panel_velocity', [
-			'priority'    => 10,
-			'title'       => esc_html__('Velocity Theme', 'justg'),
-			'description' => esc_html__('', 'justg'),
-		]);
-
-		// section title_tagline
-		Kirki::add_section('title_tagline', [
-			'panel'    => 'panel_velocity',
-			'title'    => __('Site Identity', 'justg'),
-			'priority' => 10,
-		]);
-		Kirki::add_field('justg_config', [
-			'type'          => 'text',
-			'settings'      => 'welcome_text',
-			'label'         => esc_html__('Welcome Text', 'justg'),
-			'description'   => esc_html__('Enter your welcome text', 'justg'),
-			'section'       => 'title_tagline',
-			'default'       => 'SELAMAT DATANG DI WEBSITE KAMI',
-			'priority'      => 10,
-		]);
-
-		///Section Color
-		Kirki::add_section('section_colorvelocity', [
-			'panel'    => 'panel_velocity',
-			'title'    => __('Color & Background', 'justg'),
-			'priority' => 10,
-		]);
-		Kirki::add_field('justg_config', [
-			'type'        => 'color',
-			'settings'    => 'color_theme',
-			'label'       => __('Theme Color', 'kirki'),
-			'description' => esc_html__('', 'kirki'),
-			'section'     => 'section_colorvelocity',
-			'default'     => '#176cb7',
-			'transport'   => 'auto',
-			'output'      => [
-				[
-					'element'   => ':root',
-					'property'  => '--color-theme',
-				],
-				[
-					'element'   => ':root',
-					'property'  => '--bs-primary',
-				],
-				[
-					'element'   => '.border-color-theme',
-					'property'  => '--bs-border-color',
-				]
-			],
-		]);
-		Kirki::add_field('justg_config', [
-			'type'        => 'background',
-			'settings'    => 'background_themewebsite',
-			'label'       => __('Website Background', 'kirki'),
-			'description' => esc_html__('', 'kirki'),
-			'section'     => 'section_colorvelocity',
-			'default'     => [
-				'background-color'      => '#F5F5F5',
-				'background-image'      => '',
-				'background-repeat'     => 'repeat',
-				'background-position'   => 'center center',
-				'background-size'       => 'cover',
-				'background-attachment' => 'scroll',
-			],
-			'transport'   => 'auto',
-			'output'      => [
-				[
-					'element'   => ':root[data-bs-theme=light] body',
-				],
-				[
-					'element'   => 'body',
-				],
-			],
-		]);
-
-		// remove panel in customizer 
-		Kirki::remove_panel('global_panel');
-		Kirki::remove_panel('panel_header');
-		Kirki::remove_panel('panel_footer');
-		Kirki::remove_panel('panel_antispam');
-		Kirki::remove_control('display_header_text');
-
-	endif;
-
 	//remove action from Parent Theme
 	remove_action('justg_header', 'justg_header_menu');
 	remove_action('justg_do_footer', 'justg_the_footer_open');
 	remove_action('justg_do_footer', 'justg_the_footer_content');
 	remove_action('justg_do_footer', 'justg_the_footer_close');
 	remove_theme_support('widgets-block-editor');
+}
+
+function velocitychild_customize_register($wp_customize)
+{
+	$wp_customize->add_setting(
+		'welcome_text',
+		array(
+			'default'           => 'SELAMAT DATANG DI WEBSITE KAMI',
+			'sanitize_callback' => 'sanitize_text_field',
+			'type'              => 'theme_mod',
+		)
+	);
+
+	$wp_customize->add_control(
+		'welcome_text',
+		array(
+			'type'        => 'text',
+			'label'       => esc_html__('Welcome Text', 'justg'),
+			'description' => esc_html__('Enter your welcome text', 'justg'),
+			'section'     => 'title_tagline',
+			'priority'    => 10,
+		)
+	);
+
+	$wp_customize->remove_control('display_header_text');
+}
+
+if (!function_exists('velocity_mobil3_no_image_url')) {
+	function velocity_mobil3_no_image_url()
+	{
+		return trailingslashit(get_stylesheet_directory_uri()) . 'img/no-image.webp';
+	}
+}
+
+if (!function_exists('velocity_mobil3_post_thumb_url')) {
+	function velocity_mobil3_post_thumb_url($post_id, $size = 'large')
+	{
+		$post_id = (int) $post_id;
+		if ($post_id > 0 && has_post_thumbnail($post_id)) {
+			$image_url = get_the_post_thumbnail_url($post_id, $size);
+			if (!empty($image_url)) {
+				return $image_url;
+			}
+		}
+
+		return velocity_mobil3_no_image_url();
+	}
+}
+
+if (!function_exists('velocity_mobil3_render_post_thumb')) {
+	function velocity_mobil3_render_post_thumb($post_id, $args = array())
+	{
+		$post_id = (int) $post_id;
+		if ($post_id <= 0) {
+			return '';
+		}
+
+		$defaults = array(
+			'size'          => 'large',
+			'ratio'         => '4x3',
+			'img_class'     => 'w-100 h-100 velocity-thumb-image',
+			'wrapper_class' => '',
+			'link'          => true,
+			'link_class'    => 'd-block',
+		);
+		$args = wp_parse_args($args, $defaults);
+
+		$ratio_class = 'ratio ratio-' . preg_replace('/[^0-9x]/', '', (string) $args['ratio']);
+		$wrapper_css = trim($ratio_class . ' ' . $args['wrapper_class']);
+		$image_url   = velocity_mobil3_post_thumb_url($post_id, $args['size']);
+		$post_title  = wp_strip_all_tags(get_the_title($post_id));
+		$alt_text    = $post_title;
+		$thumb_id    = get_post_thumbnail_id($post_id);
+
+		if (!empty($thumb_id)) {
+			$thumb_alt = trim((string) get_post_meta($thumb_id, '_wp_attachment_image_alt', true));
+			if ($thumb_alt !== '') {
+				$alt_text = $thumb_alt;
+			}
+		}
+
+		$image_html = sprintf(
+			'<div class="%1$s"><img class="%2$s" src="%3$s" alt="%4$s" loading="lazy" decoding="async"></div>',
+			esc_attr($wrapper_css),
+			esc_attr($args['img_class']),
+			esc_url($image_url),
+			esc_attr($alt_text)
+		);
+
+		if (!$args['link']) {
+			return $image_html;
+		}
+
+		$post_link = get_permalink($post_id);
+		if (empty($post_link)) {
+			return $image_html;
+		}
+
+		return sprintf(
+			'<a class="%1$s" href="%2$s" title="%3$s" aria-label="%4$s">%5$s</a>',
+			esc_attr($args['link_class']),
+			esc_url($post_link),
+			esc_attr($post_title),
+			esc_attr($post_title),
+			$image_html
+		);
+	}
 }
 
 

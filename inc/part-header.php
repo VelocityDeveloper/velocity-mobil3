@@ -1,4 +1,4 @@
-<div class="bg-gradient mb-3">
+<div class="bg-gradient mb-3 mt-2 mt-md-0">
     <div class="container py-2 text-white bg-dark">
         <div class="row align-items-center">
             <div class="col-md-6 fw-bold fs-6 fst-italic text-center text-md-start mb-2 mb-md-0">
@@ -8,9 +8,9 @@
                 <form class="border border-primary bg-white rounded" method="get" name="searchform" action="<?php echo get_home_url(); ?>">
                     <div class="row">
                         <div class="col-9 col-md-10 pe-0">
-                            <input type="text" name="s" class="form-control form-control-sm border-0" value="<?php echo $s;?>" required="">
+                            <input type="text" name="s" class="form-control form-control-sm border-0" value="<?php echo esc_attr(get_search_query()); ?>" required="">
                         </div>
-                        <div class="col-3 col-md-2 ps-1">
+                        <div class="col-3 col-md-2">
                             <button type="submit" class="h-100 w-100 btn text-white btn-sm bg-theme border-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                                     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
@@ -32,14 +32,14 @@
     </h2>
 
     <div class="row align-items-center m-0">
-        <div class="col-3 px-0">
+        <div class="col-5 col-sm-3 px-0">
             <?php if (has_custom_logo()) {
                 echo '<a href="'.get_home_url().'">';
                     echo get_custom_logo();
                 echo '</a>';
             } ?>
         </div>
-        <div class="col-9 px-0">
+        <div class="col-7 col-sm-9 px-0">
 
             <div class="offcanvas offcanvas-start" tabindex="-1" id="navbarNavOffcanvas">
 

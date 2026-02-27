@@ -65,7 +65,7 @@ $container = velocitytheme_option( 'justg_container_type','container' );
 						<div class="col-sm-4 col-6 p-2 text-center">
 							<div class="bg-white h-100 border">
 								<div class="p-2">
-									<?php echo do_shortcode("[resize-thumbnail width='280' height='200' crop='false' upscale='true' post_id='".$post->ID."']"); ?>
+									<?php echo velocity_mobil3_render_post_thumb($post->ID); ?>
 								</div>
 								<div class="p-2 col">
 									<h4 class="mb-1 fs-6"><a class="fw-bold text-dark" href="<?php echo get_the_permalink($post->ID); ?>"><?php echo get_the_title($post->ID); ?></a></h4>

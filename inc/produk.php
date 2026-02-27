@@ -29,93 +29,256 @@ function velocity_admin_init() {
     );
 }
 
+// Skema metabox sederhana (tanpa plugin)
+function velocity_metabox($meta_boxes = array()) {
+	$textdomain = 'justg';
 
+	$meta_boxes[] = array(
+		'id'           => 'velocity_produk_meta',
+		'title'        => __('Detail Produk', $textdomain),
+		'post_types'   => array('produk'),
+		'context'      => 'normal',
+		'priority'     => 'default',
+		'nonce_action' => 'velocity_produk_meta_save',
+		'nonce_name'   => 'velocity_produk_meta_nonce',
+		'fields'       => array(
+			array(
+				'name' => __('Harga', $textdomain),
+				'id'   => 'harga',
+				'type' => 'number',
+				'min'  => 0,
+				'step' => 1,
+				'desc' => __('Isi nominalnya saja, contoh: 250000000', $textdomain),
+			),
+			array(
+				'name' => __('Warna', $textdomain),
+				'id'   => 'warna',
+				'type' => 'text',
+				'desc' => __('Pisahkan dengan tanda koma, contoh: Hitam, Putih, Biru', $textdomain),
+			),
+			array(
+				'name' => __('Mesin', $textdomain),
+				'id'   => 'mesin',
+				'type' => 'text',
+			),
+			array(
+				'name' => __('Transmisi', $textdomain),
+				'id'   => 'transmisi',
+				'type' => 'text',
+			),
+		),
+	);
 
-// custom produk meta box
-function add_custom_meta_box() {
-	$screens = array( 'produk' );
-	foreach ( $screens as $screen ) {
-		add_meta_box(
-			'velocity_produk_meta',
-			__( 'Detail Produk', 'velprodukdetail' ),
-			'vel_meta_box_callback',
-			$screen
-		);
+	return $meta_boxes;
+}
+
+function velocity_get_metabox_schema_map() {
+	$schema = velocity_metabox(array());
+	$map    = array();
+	foreach ($schema as $meta_box) {
+		if (!empty($meta_box['id'])) {
+			$map[$meta_box['id']] = $meta_box;
+		}
+	}
+
+	return $map;
+}
+
+function velocity_register_meta_boxes() {
+	$meta_boxes = velocity_metabox(array());
+	foreach ($meta_boxes as $meta_box) {
+		$post_types = !empty($meta_box['post_types']) && is_array($meta_box['post_types']) ? $meta_box['post_types'] : array('post');
+		foreach ($post_types as $post_type) {
+			add_meta_box(
+				$meta_box['id'],
+				$meta_box['title'],
+				'velocity_render_meta_box',
+				$post_type,
+				isset($meta_box['context']) ? $meta_box['context'] : 'advanced',
+				isset($meta_box['priority']) ? $meta_box['priority'] : 'default',
+				array('meta_box' => $meta_box)
+			);
+		}
 	}
 }
-add_action( 'add_meta_boxes', 'add_custom_meta_box' );
+add_action('add_meta_boxes', 'velocity_register_meta_boxes');
 
-function vel_meta_box_callback( $post ) {
-	wp_nonce_field( 'vel_metabox', 'myplugin_meta_box_nonce' );
-	$harga = get_post_meta( $post->ID, 'harga', true );
-	$warna = get_post_meta( $post->ID, 'warna', true );
-	$mesin = get_post_meta( $post->ID, 'mesin', true );
-	$transmisi = get_post_meta( $post->ID, 'transmisi', true );
+function velocity_render_meta_box($post, $callback_args) {
+	if (empty($callback_args['args']['meta_box']) || !is_array($callback_args['args']['meta_box'])) {
+		return;
+	}
+
+	$meta_box     = $callback_args['args']['meta_box'];
+	$nonce_name   = !empty($meta_box['nonce_name']) ? $meta_box['nonce_name'] : 'velocity_meta_nonce';
+	$nonce_action = !empty($meta_box['nonce_action']) ? $meta_box['nonce_action'] : 'velocity_meta_save';
+	$fields       = !empty($meta_box['fields']) && is_array($meta_box['fields']) ? $meta_box['fields'] : array();
+
+	wp_nonce_field($nonce_action, $nonce_name);
+
 	echo '<table class="form-table" role="presentation"><tbody>';
-	echo '<tr>';
-	echo '<th><label>Harga</label></th>';
-	echo '<td><input type="number" name="harga" value="'.esc_attr($harga).'" size="25" />';
-	echo '<br/><small>Isi nominalnya saja, contoh: 250000000</small>';
-	echo '</td>';
-	echo '</tr>';
-	echo '<tr>';
-	echo '<th><label>Warna</label></th>';
-	echo '<td><input type="text" name="warna" value="'.esc_attr($warna).'" size="25" />';
-	echo '<br/><small>Pisahkan dengan tanda koma, contoh: Hitam, Putih, Biru</small>';
-	echo '</td>';
-	echo '</tr>';
-	echo '<tr>';
-	echo '<th><label>Mesin</label></th>';
-	echo '<td><input type="text" name="mesin" value="'.esc_attr($mesin).'" size="25" /></td>';
-	echo '</tr>';
-	echo '<tr>';
-	echo '<th><label>Transmisi</label></th>';
-	echo '<td><input type="text" name="transmisi" value="'.esc_attr($transmisi).'" size="25" /></td>';
-	echo '</tr>';
+	foreach ($fields as $field) {
+		$field_id = isset($field['id']) ? $field['id'] : '';
+		if ($field_id === '') {
+			continue;
+		}
+		$value = get_post_meta($post->ID, $field_id, true);
+		echo '<tr>';
+		echo '<th><label for="' . esc_attr($field_id) . '">' . esc_html(isset($field['name']) ? $field['name'] : $field_id) . '</label></th>';
+		echo '<td>';
+		velocity_render_meta_field_input($field, $value);
+		if (!empty($field['desc'])) {
+			echo '<p><small>' . esc_html($field['desc']) . '</small></p>';
+		}
+		echo '</td>';
+		echo '</tr>';
+	}
 	echo '</tbody></table>';
 }
 
+function velocity_render_meta_field_input($field, $value) {
+	$field_id    = isset($field['id']) ? $field['id'] : '';
+	$field_type  = isset($field['type']) ? $field['type'] : 'text';
+	$field_class = !empty($field['class']) ? $field['class'] : 'regular-text';
+	$options     = isset($field['options']) && is_array($field['options']) ? $field['options'] : array();
 
-function vel_metabox( $post_id ) {
-	if ( ! isset( $_POST['myplugin_meta_box_nonce'] ) ) {
-		return;
-	}
-	if ( ! wp_verify_nonce( $_POST['myplugin_meta_box_nonce'], 'vel_metabox' ) ) {
-		return;
-	}
-	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-		return;
-	}
-	if ( isset( $_POST['post_type'] ) && 'page' == $_POST['post_type'] ) {
-		if ( ! current_user_can( 'edit_page', $post_id ) ) {
-			return;
-		}
-	} else {
-		if ( ! current_user_can( 'edit_post', $post_id ) ) {
-			return;
-		}
-	}
+	switch ($field_type) {
+		case 'textarea':
+			echo '<textarea id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" class="' . esc_attr($field_class) . '" rows="4">' . esc_textarea($value) . '</textarea>';
+			break;
 
+		case 'number':
+			$min  = isset($field['min']) ? ' min="' . esc_attr($field['min']) . '"' : '';
+			$max  = isset($field['max']) ? ' max="' . esc_attr($field['max']) . '"' : '';
+			$step = isset($field['step']) ? ' step="' . esc_attr($field['step']) . '"' : '';
+			echo '<input type="number" id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" class="' . esc_attr($field_class) . '" value="' . esc_attr($value) . '"' . $min . $max . $step . ' />';
+			break;
 
-	if ( ! isset( $_POST['harga'] ) ) {
-		return;
+		case 'checkbox':
+			echo '<label><input type="checkbox" id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" value="1" ' . checked((string) $value, '1', false) . ' /> ' . esc_html(isset($field['label']) ? $field['label'] : '') . '</label>';
+			break;
+
+		case 'radio':
+			foreach ($options as $option_value => $option_label) {
+				echo '<label style="display:block;margin-bottom:4px;"><input type="radio" name="' . esc_attr($field_id) . '" value="' . esc_attr($option_value) . '" ' . checked((string) $value, (string) $option_value, false) . ' /> ' . esc_html($option_label) . '</label>';
+			}
+			break;
+
+		case 'select':
+			echo '<select id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" class="' . esc_attr($field_class) . '">';
+			foreach ($options as $option_value => $option_label) {
+				echo '<option value="' . esc_attr($option_value) . '" ' . selected((string) $value, (string) $option_value, false) . '>' . esc_html($option_label) . '</option>';
+			}
+			echo '</select>';
+			break;
+
+		case 'email':
+		case 'url':
+		case 'date':
+			echo '<input type="' . esc_attr($field_type) . '" id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" class="' . esc_attr($field_class) . '" value="' . esc_attr($value) . '" />';
+			break;
+
+		case 'file':
+			echo '<input type="url" id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" class="' . esc_attr($field_class) . '" value="' . esc_attr($value) . '" placeholder="https://..." />';
+			break;
+
+		case 'text':
+		default:
+			echo '<input type="text" id="' . esc_attr($field_id) . '" name="' . esc_attr($field_id) . '" class="' . esc_attr($field_class) . '" value="' . esc_attr($value) . '" />';
+			break;
 	}
-	if ( ! isset( $_POST['warna'] ) ) {
-		return;
-	}
-	if ( ! isset( $_POST['mesin'] ) ) {
-		return;
-	}
-	if ( ! isset( $_POST['transmisi'] ) ) {
-		return;
-	}
-	// Update the meta field in the database.
-	update_post_meta( $post_id, 'harga', sanitize_text_field( $_POST['harga'] ) );
-	update_post_meta( $post_id, 'warna', sanitize_text_field( $_POST['warna'] ) );
-	update_post_meta( $post_id, 'mesin', sanitize_text_field( $_POST['mesin'] ) );
-	update_post_meta( $post_id, 'transmisi', sanitize_text_field( $_POST['transmisi'] ) );
 }
-add_action( 'save_post', 'vel_metabox' );
+
+function velocity_sanitize_meta_field_value($raw_value, $field) {
+	$field_type = isset($field['type']) ? $field['type'] : 'text';
+
+	switch ($field_type) {
+		case 'textarea':
+			return sanitize_textarea_field($raw_value);
+
+		case 'number':
+			$clean_number = preg_replace('/[^0-9.\-]/', '', (string) $raw_value);
+			return $clean_number;
+
+		case 'email':
+			return sanitize_email($raw_value);
+
+		case 'url':
+		case 'file':
+			return esc_url_raw($raw_value);
+
+		case 'checkbox':
+			return !empty($raw_value) ? '1' : '0';
+
+		case 'radio':
+		case 'select':
+			$clean_value = sanitize_text_field($raw_value);
+			$options     = isset($field['options']) && is_array($field['options']) ? array_keys($field['options']) : array();
+			if (!empty($options) && !in_array($clean_value, $options, true)) {
+				return '';
+			}
+			return $clean_value;
+
+		case 'date':
+			return sanitize_text_field($raw_value);
+
+		case 'text':
+		default:
+			return sanitize_text_field($raw_value);
+	}
+}
+
+function velocity_save_meta_boxes($post_id) {
+	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+		return;
+	}
+
+	if (wp_is_post_revision($post_id)) {
+		return;
+	}
+
+	$post_type = get_post_type($post_id);
+	if (!$post_type) {
+		return;
+	}
+
+	if (!current_user_can('edit_post', $post_id)) {
+		return;
+	}
+
+	$schema_map = velocity_get_metabox_schema_map();
+	foreach ($schema_map as $meta_box) {
+		$post_types = !empty($meta_box['post_types']) && is_array($meta_box['post_types']) ? $meta_box['post_types'] : array();
+		if (!in_array($post_type, $post_types, true)) {
+			continue;
+		}
+
+		$nonce_name   = !empty($meta_box['nonce_name']) ? $meta_box['nonce_name'] : 'velocity_meta_nonce';
+		$nonce_action = !empty($meta_box['nonce_action']) ? $meta_box['nonce_action'] : 'velocity_meta_save';
+		if (empty($_POST[$nonce_name]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST[$nonce_name])), $nonce_action)) {
+			continue;
+		}
+
+		$fields = !empty($meta_box['fields']) && is_array($meta_box['fields']) ? $meta_box['fields'] : array();
+		foreach ($fields as $field) {
+			$field_id   = isset($field['id']) ? $field['id'] : '';
+			$field_type = isset($field['type']) ? $field['type'] : 'text';
+			if ($field_id === '') {
+				continue;
+			}
+
+			$is_checkbox = ($field_type === 'checkbox');
+			$posted      = isset($_POST[$field_id]) ? wp_unslash($_POST[$field_id]) : ($is_checkbox ? '0' : null);
+
+			if ($posted === null) {
+				continue;
+			}
+
+			$clean_value = velocity_sanitize_meta_field_value($posted, $field);
+			update_post_meta($post_id, $field_id, $clean_value);
+		}
+	}
+}
+add_action('save_post', 'velocity_save_meta_boxes');
 
 
 
@@ -138,53 +301,6 @@ function velocity_harga($postid = null){
     return $html;
 }
 
-
-
-// Update jumlah pengunjung dengan plugin WP-Statistics
-function velocity_allpage() {
-    global $wpdb,$post;
-    $postID = $post->ID;
-    $count_key = 'hit';
-    if(empty($post))
-    return false;
-	if( function_exists( 'WP_Statistics' ) ) {
-		$table_name = $wpdb->prefix . "statistics_pages";
-		$results    = $wpdb->get_results("SELECT sum(count) as result_value FROM $table_name WHERE id = $postID");
-		$count = $results?$results[0]->result_value:'0';
-		if($count=='') {
-			delete_post_meta($postID, $count_key);
-			add_post_meta($postID, $count_key, '0');
-		} else {
-			update_post_meta($postID, $count_key, $count);
-		}
-	} else {
-        $user_ip = $_SERVER['REMOTE_ADDR']; //retrieve the current IP address of the visitor
-        $key = $user_ip . 'x' . $postID; //combine post ID & IP to form unique key
-        $value = array($user_ip, $postID); // store post ID & IP as separate values (see note)
-        $visited = get_transient($key); //get transient and store in variable
-
-        //check to see if the Post ID/IP ($key) address is currently stored as a transient
-        if ( false === ( $visited ) ) {
-
-            //store the unique key, Post ID & IP address for 12 hours if it does not exist
-           set_transient( $key, $value, 60*60*12 );
-
-            // now run post views function
-            $count = get_post_meta($postID, $count_key, true);
-            if($count==''){
-                $count = 0;
-                delete_post_meta($postID, $count_key);
-                add_post_meta($postID, $count_key, '0');
-            }else{
-                $count++;
-                update_post_meta($postID, $count_key, $count);
-            }
-        }		
-	}
-}
-add_action( 'wp', 'velocity_allpage' );
-
-
 // [velocity-produk]
 function velocity_katalog_produk($atts){
     ob_start();
@@ -196,7 +312,6 @@ function velocity_katalog_produk($atts){
     $args['posts_per_page'] = $atribut['jumlah'];
     $args['post_type'] = 'produk';
     $kategori = $atribut['kategori'];
-    $lokasi = $atribut['lokasi'];
     $style = $atribut['style'];
     $taxquery = array();
     if ($kategori) {
@@ -219,7 +334,7 @@ function velocity_katalog_produk($atts){
     <div class="bg-white h-100 border">
         <div class="p-2">
     <?php } ?>
-            <?php echo do_shortcode("[resize-thumbnail width='280' height='200' crop='false' upscale='true' post_id='".$post->ID."']"); ?>
+            <?php echo velocity_mobil3_render_post_thumb($post->ID); ?>
         </div>
         <div class="p-2 col">
             <h4 class="mb-1 fs-6"><a class="fw-bold text-dark" href="<?php echo get_the_permalink($post->ID); ?>"><?php echo get_the_title($post->ID); ?></a></h4>
