@@ -81,7 +81,7 @@ $transmisi = get_post_meta( $post->ID, 'transmisi', true );
                         </table>
                     </div>
                     <div class="col-12">
-                        <?php echo get_the_content();?>
+                        <?php the_content();?>
                     </div>
                 </div>
             </div>
